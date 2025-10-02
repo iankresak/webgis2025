@@ -6,7 +6,7 @@
 </head>
 <body>
 <h3>Lab3: Web-based Mapping Using OpenLayers</h3>
-<h4>Author: YOUR NAME HERE</h4>
+<h4>Author: Ian Kresak</h4>
 <div id="map" class="map", style = "width:800px; height: 600px"></div>
 <script>
 var OSM = new ol.layer.Tile({
@@ -21,9 +21,9 @@ center: [-10997148, 4569099],
 zoom: 4
 })
 });
-var nycExtent4326 = [-74.2591, 40.4774, -73.7004, 40.9162];
-var nycExtent3857 = ol.proj.transformExtent(nycExtent4326, 'EPSG:4326', 'EPSG:3857');
-map.getView().fit(nycExtent3857, {
+var ncExtent4326 = [-84.3219, 33.7529, -75.4001, 36.5880];
+var ncExtent3857 = ol.proj.transformExtent(ncExtent4326, 'EPSG:4326', 'EPSG:3857');
+map.getView().fit(ncExtent3857, {
 size: map.getSize(),
 padding: [20, 20, 20, 20],
 duration: 300
