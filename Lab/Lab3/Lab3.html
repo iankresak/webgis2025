@@ -24,17 +24,16 @@ center: [-10997148, 4569099],
 zoom: 4
 })
 });
-  
-</script>
-
-</body>
 var nycExtent4326 = [-74.2591, 40.4774, -73.7004, 40.9162];
 var nycExtent3857 = ol.proj.transformExtent(nycExtent4326, 'EPSG:4326', 'EPSG:3857');
 map.getView().fit(nycExtent3857, {
 size: map.getSize(),
 padding: [20, 20, 20, 20],
 duration: 300
-});
+}); 
+</script>
+
+</body>
 
 </html>
 
