@@ -1,13 +1,16 @@
 <html>
 <head>
 <title>Lab3: Web-based Mapping Using OpenLayers</title>
+  
+</head>
 <script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
-</head>
+  
 <body>
 <h3>Lab3: Web-based Mapping Using OpenLayers</h3>
-<h4>Author: Ian Kresak</h4>
+<h4>Author: YOUR NAME HERE</h4>
 <div id="map" class="map", style = "width:800px; height: 600px"></div>
+  
 <script>
 var OSM = new ol.layer.Tile({
 source: new ol.source.OSM()
@@ -21,13 +24,10 @@ center: [-10997148, 4569099],
 zoom: 4
 })
 });
-var ncExtent4326 = [-84.321869, 33.842316, -75.460621, 36.588117];
-var ncExtent3857 = ol.proj.transformExtent(ncExtent4326, 'EPSG:4326', 'EPSG:3857');
-map.getView().fit(ncExtent3857, {
-size: map.getSize(),
-padding: [20, 20, 20, 20],
-duration: 300
-});
+  
 </script>
+  
 </body>
+  
 </html>
+
