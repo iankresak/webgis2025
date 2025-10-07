@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Lab3: Web-based Mapping Using OpenLayers — North Carolina</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
+<style>
+body { margin: 0; font-family: Arial, sans-serif; }
+header { padding: 12px; border-bottom: 1px solid #ccc; }
+#map { width: 100%; height: 90vh; }
+</style>
+</head>
+<body>
+<header>
+<h3>Lab3: Web-based Mapping Using OpenLayers</h3>
+<h4>Author: Ian Kresak</h4>
+</header>
+
+<div id="map" class="map"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
+<script>
+// North Carolina bounding box in EPSG:4326 (lon/lat)
+var ncExtent4326 = [-84.3219, 33.7529, -75.4001, 36.5880];
+
+// Convert to EPSG:3857 (Web Mercator)
+var ncExtent3857 = ol.proj.transformExtent(ncExtent4326, 'EPSG:4326', 'EPSG:3857');
+
+// Base map (OpenStreetMap)
+var osm = new ol.layer.Tile({
+source: new ol.source.OSM()
+});
+
+// Create map
+var map = new ol.Map({
+target: 'map',
+layers: [osm],
+view: new ol.View({
+projection: 'EPSG:3857',
+center: ol.extent.getCenter(ncExtent3857),
+zoom: 6,
+extent: ncExtent3857   // restricts map panning/zooming to NC
+})
+});
+
+// Fit the map to NC extent when loaded
+map.getView().fit(ncExtent3857, {
+size: map.getSize(),
+padding: [20, 20, 20, 20],
+duration: 1000
+});
+</script>
+</body>
+</html>
