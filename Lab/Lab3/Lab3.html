@@ -1,39 +1,120 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<title>Lab3: Web-based Mapping Using OpenLayers</title>
-  
+  <meta charset="utf-8" />
+  <title>Lab3: Web-based Mapping Using OpenLayers — Azure Maps Basemap Switcher</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol-layerswitcher@4.1.2/dist/ol-layerswitcher.css" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
+    #map { width: 100%; height: 90vh; }
+    header { padding: 12px; border-bottom: 1px solid #ccc; }
+  </style>
 </head>
-<script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
-  
 <body>
-<h3>Lab3: Web-based Mapping Using OpenLayers</h3>
-<h4>Author: YOUR NAME HERE</h4>
-<div id="map" class="map", style = "width:800px; height: 600px"></div>
-  
-<script>
-var OSM = new ol.layer.Tile({
-source: new ol.source.OSM()
-});
-var map = new ol.Map({
-layers: [OSM],
-target: 'map',
-view: new ol.View({
-projection: 'EPSG:3857',
-center: [-10997148, 4569099],
-zoom: 4
-})
-});
-var nycExtent4326 = [-74.2591, 40.4774, -73.7004, 40.9162];
-var nycExtent3857 = ol.proj.transformExtent(nycExtent4326, 'EPSG:4326', 'EPSG:3857');
-map.getView().fit(nycExtent3857, {
-size: map.getSize(),
-padding: [20, 20, 20, 20],
-duration: 300
-}); 
-</script>
+  <header>
+    <h3>Lab3: Web-based Mapping Using OpenLayers</h3>
+    <h4>Author: YOUR NAME HERE</h4>
+  </header>
 
+  <div id="map" class="map"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ol-layerswitcher@4.1.2/dist/ol-layerswitcher.js"></script>
+  <script>
+    // Define OSM layer
+    var OSM = new ol.layer.Tile({
+      title: 'OSM',
+      type: 'base',
+      visible: false,
+      source: new ol.source.OSM()
+    });
+
+    // Azure subscription key (replace with your own if needed)
+    var AZURE_KEY = '6srLl2o3dGC8xAqJVrOEtVGTFj1ujl40lKOoKJD6f1K3XLS2U5JAJQQJ99BIACYeBjFZ86DdAAAgAZMP4fGn';
+
+    // Azure Maps basemaps
+    var azureRoad = new ol.layer.Tile({
+      title: 'Azure Maps (Road)',
+      type: 'base',
+      visible: true,
+      source: new ol.source.XYZ({
+        url: 'https://atlas.microsoft.com/map/tile?api-version=2022-08-01' +
+             '&tilesetId=microsoft.base.road&zoom={z}&x={x}&y={y}' +
+             '&subscription-key=' + AZURE_KEY,
+        crossOrigin: 'anonymous'
+      })
+    });
+
+    var azureDark = new ol.layer.Tile({
+      title: 'Azure Maps (Dark Grey)',
+      type: 'base',
+      visible: false,
+      source: new ol.source.XYZ({
+        url: 'https://atlas.microsoft.com/map/tile?api-version=2022-08-01' +
+             '&tilesetId=microsoft.base.darkgrey&zoom={z}&x={x}&y={y}' +
+             '&subscription-key=' + AZURE_KEY,
+        crossOrigin: 'anonymous'
+      })
+    });
+
+    var azureImagery = new ol.layer.Tile({
+      title: 'Azure Maps (Imagery)',
+      type: 'base',
+      visible: false,
+      source: new ol.source.XYZ({
+        url: 'https://atlas.microsoft.com/map/tile?api-version=2022-08-01' +
+             '&tilesetId=microsoft.imagery&zoom={z}&x={x}&y={y}' +
+             '&subscription-key=' + AZURE_KEY,
+        crossOrigin: 'anonymous'
+      })
+    });
+
+    var azureTerra = new ol.layer.Tile({
+      title: 'Azure Maps (Terra)',
+      type: 'base',
+      visible: false,
+      source: new ol.source.XYZ({
+        url: 'https://atlas.microsoft.com/map/tile?api-version=2022-08-01' +
+             '&tilesetId=microsoft.terra.main&zoom={z}&x={x}&y={y}' +
+             '&subscription-key=' + AZURE_KEY,
+        crossOrigin: 'anonymous'
+      })
+    });
+
+    // Group the basemaps
+    var baseGroup = new ol.layer.Group({
+      title: 'Base maps',
+      layers: [azureRoad, azureDark, azureImagery, azureTerra, OSM]
+    });
+
+    // Define map
+    var map = new ol.Map({
+      target: 'map',
+      layers: [baseGroup],
+      view: new ol.View({
+        center: [-10997148, 4569099],
+        zoom: 4
+      })
+    });
+
+    // NYC extent
+    var nycExtent4326 = [-74.2591, 40.4774, -73.7004, 40.9162];
+    var nycExtent3857 = ol.proj.transformExtent(nycExtent4326, 'EPSG:4326', 'EPSG:3857');
+    map.getView().fit(nycExtent3857, {
+      size: map.getSize(),
+      padding: [20, 20, 20, 20],
+      duration: 300
+    });
+
+    // Add Layer Switcher Control
+    var layerSwitcher = new ol.control.LayerSwitcher({
+      activationMode: 'click',
+      startActive: false,
+      groupSelectStyle: 'children'
+    });
+    map.addControl(layerSwitcher);
+  </script>
 </body>
-
 </html>
-
