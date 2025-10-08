@@ -1,72 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>North Carolina Only — OpenLayers</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
-  <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    header { padding: 12px; border-bottom: 1px solid #ccc; }
-    #map { width: 100%; height: 90vh; }
-  </style>
+<meta charset="utf-8" />
+<title>North Carolina Only — OpenLayers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
+<style>
+body { margin: 0; font-family: Arial, sans-serif; }
+header { padding: 12px; border-bottom: 1px solid #ccc; }
+#map { width: 100%; height: 90vh; }
+</style>
 </head>
 <body>
-  <header>
-    <h3>Lab3: Web-based Mapping Using OpenLayers</h3>
-    <h4>Author: YOUR NAME HERE</h4>
-  </header>
+<header>
+<h3>Lab3: Web-based Mapping Using OpenLayers</h3>
+<h4>Author: YOUR NAME HERE</h4>
+</header>
 
-  <div id="map" class="map"></div>
+<div id="map" class="map"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
-  <script>
-    // Simple GeoJSON for North Carolina boundary (approximate, simplified polygon)
-    var ncGeoJSON = {
-      "type": "FeatureCollection",
-      "features": [{
-        "type": "Feature",
-        "properties": { "name": "North Carolina" },
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [[
-            [-84.3219, 34.9957],
-            [-84.3219, 36.5880],
-            [-75.4001, 36.5880],
-            [-75.4001, 34.9957],
-            [-84.3219, 34.9957]
-          ]]
-        }
-      }]
-    };
+<script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
+<script>
+// Simple GeoJSON for North Carolina boundary (approximate, simplified polygon)
+var ncGeoJSON = {
+"type": "FeatureCollection",
+"features": [{
+"type": "Feature",
+"properties": { "name": "North Carolina" },
+"geometry": {
+"type": "Polygon",
+"coordinates": [[
+[-84.3219, 34.9957],
+[-84.3219, 36.5880],
+[-75.4001, 36.5880],
+[-75.4001, 34.9957],
+[-84.3219, 34.9957]
+]]
+}
+}]
+};
 
-    // Vector layer for NC
-    var ncLayer = new ol.layer.Vector({
-      source: new ol.source.Vector({
-        features: new ol.format.GeoJSON().readFeatures(ncGeoJSON, {
-          featureProjection: 'EPSG:3857'
-        })
-      }),
-      style: new ol.style.Style({
-        fill: new ol.style.Fill({ color: 'rgba(0, 128, 255, 0.4)' }),
-        stroke: new ol.style.Stroke({ color: '#003366', width: 2 })
-      })
-    });
+// Vector layer for NC
+var ncLayer = new ol.layer.Vector({
+source: new ol.source.Vector({
+features: new ol.format.GeoJSON().readFeatures(ncGeoJSON, {
+featureProjection: 'EPSG:3857'
+})
+}),
+style: new ol.style.Style({
+fill: new ol.style.Fill({ color: 'rgba(0, 128, 255, 0.4)' }),
+stroke: new ol.style.Stroke({ color: '#003366', width: 2 })
+})
+});
 
-    // Create map (NO basemap, only NC polygon)
-    var map = new ol.Map({
-      target: 'map',
-      layers: [ncLayer],
-      view: new ol.View({
-        projection: 'EPSG:3857',
-        center: ol.proj.fromLonLat([-79.0, 35.5]), // NC center
-        zoom: 6
-      })
-    });
+// Create map (NO basemap, only NC polygon)
+var map = new ol.Map({
+target: 'map',
+layers: [ncLayer],
+view: new ol.View({
+projection: 'EPSG:3857',
+center: ol.proj.fromLonLat([-79.0, 35.5]), // NC center
+zoom: 6
+})
+});
 
-    // Zoom to NC polygon
-    var extent = ncLayer.getSource().getExtent();
-    map.getView().fit(extent, { size: map.getSize(), padding: [20,20,20,20], duration: 1000 });
-  </script>
+// Zoom to NC polygon
+var extent = ncLayer.getSource().getExtent();
+map.getView().fit(extent, { size: map.getSize(), padding: [20,20,20,20], duration: 1000 });
+</script>
 </body>
 </html>
