@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+const hillshade = L.esri.tiledMapLayer({
+url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer',
+opacity: 0.8
+});
+
+
+// 3) Land Cover: ESA WorldCover 10m 2020 (tiled map layer via Esri)
+// Service often published by Esri as a tiled MapServer from ESA WorldCover imagery.
+// If this service name changes in the future, swap the URL below.
+const landcover = L.esri.tiledMapLayer({
+url: 'https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/WorldCover_2020/MapServer',
+opacity: 0.85
+});
+
+
+// 4) Population Density (~2020) (tiled)
+const population = L.esri.tiledMapLayer({
+url: 'https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/World_Population_Density_2020/MapServer',
+opacity: 0.75
+});
+
+
+// ----------------------- Initialize map -----------------------
+const map = L.map('map', {
+center: [39.833, -98.583], // Continental U.S. (lat, lng)
+zoom: 4,
+minZoom: 2,
+maxZoom: 19,
+layers: [osm, wmsStates] // default base + WMS
+});
+
+
+// Keep map sizing correct on container resize
+new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById('map'));
+
+
+// ----------------------- Basemap radio switcher -----------------------
+document.querySelectorAll('input[name="basemap"]').forEach(r => {
+r.addEventListener('change', (e) => {
+const which = e.target.value;
+if (which === 'osm') {
+if (map.hasLayer(esriImagery)) map.removeLayer(esriImagery);
+if (!map.hasLayer(osm)) map.addLayer(osm);
+} else if (which === 'esri') {
+if (map.hasLayer(osm)) map.removeLayer(osm);
+if (!map.hasLayer(esriImagery)) map.addLayer(esriImagery);
+}
+});
+});
+
+
+// ----------------------- Overlay toggles -----------------------
+const bindToggle = (id, layer) => {
+const el = document.getElementById(id);
+el.addEventListener('change', (e) => {
+if (e.target.checked) {
+if (!map.hasLayer(layer)) map.addLayer(layer);
+if (layer.bringToFront) layer.bringToFront();
+} else {
+if (map.hasLayer(layer)) map.removeLayer(layer);
+}
+});
+};
+
+
+bindToggle('wmsToggle', wmsStates);
+bindToggle('hillshadeToggle', hillshade);
+bindToggle('landcoverToggle', landcover);
+bindToggle('popToggle', population);
+
+
+// ----------------------- Optional Layers Control -----------------------
+const baseLayers = { 'OSM (Streets)': osm, 'Esri Imagery': esriImagery };
+const overlays = {
+'WMS: topp:states': wmsStates,
+'Elevation: World Hillshade': hillshade,
+'Land Cover: ESA WorldCover 10m (2020)': landcover,
+'Population Density (~2020)': population
+};
+L.control.layers(baseLayers, overlays, { collapsed: true }).addTo(map);
+
+
+// ----------------------- Simple Smoke Tests -----------------------
+// These quick checks validate that layers can be added/removed without errors.
+// (Open the browser console to see messages.)
+try {
+console.assert(map.hasLayer(osm), 'OSM should be on by default');
+console.assert(map.hasLayer(wmsStates), 'WMS should be on by default');
+hillshade.addTo(map); // add
+console.assert(map.hasLayer(hillshade), 'Hillshade should add');
+map.removeLayer(hillshade); // remove
+console.assert(!map.hasLayer(hillshade), 'Hillshade should remove');
+} catch (e) {
+console.warn('Smoke tests encountered an issue:', e);
+}
+</script>
+</body>
+</html>
