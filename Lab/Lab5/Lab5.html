@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Lab 5: Generative AI for Web Mapping</title>
+<script src="https://cdn.jsdelivr.net/npm/ol@v7.1.0/dist/ol.js"></script>
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/ol@v7.1.0/ol.css">
+<style>
+body { font-family: Arial, sans-serif; margin: 1rem; }
+#map { width: 100%; height: 80vh; }
+.controls { margin: 0.5rem 0; }
+.controls label { margin-right: 1rem; }
+</style>
+</head>
+<body>
+<h3>Lab 5: Generative AI for Web Mapping</h3>
+<div class="controls">
+<strong>Base map:</strong>
+<label><input type="radio" name="basemap" value="osm"
+checked> OSM</label>
+<label><input type="radio" name="basemap" value="esri"> ESRI
+Imagery</label>
+<label style="margin-left:1rem;"><input type="checkbox"
+id="wmsToggle" checked> WMS: topp:states</label>
+</div>
+<div id="map" class="map"></div>
+<script>
+// Base layers
+const osm = new ol.layer.Tile({
+title: "OSM",
+type: "base",
+visible: true,
+source: new ol.source.OSM()
+});
+const esri = new ol.layer.Tile({
+title: "ESRI World Imagery",
+type: "base",
+visible: false,
+source: new ol.source.XYZ({
+url:
+"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/Ma
+pServer/tile/{z}/{y}/{x}"
+})
+});
+const baseGroup = new ol.layer.Group({
+title: "Base maps",
+layers: [osm, esri]
+});
+// WMS overlay
+const wms = new ol.layer.Tile({
+title: "States",
+visible: true,
+source: new ol.source.TileWMS({
+url: "https://ahocevar.com/geoserver/wms",
+params: {
+'LAYERS': 'topp:states',
+'FORMAT': 'image/png',
+'TRANSPARENT': true
+},
+serverType: 'geoserver',
+transition: 0
+})
+});
+const map = new ol.Map({
+target: "map",
+layers: [baseGroup, wms],
+view: new ol.View({
+projection: "EPSG:3857",
+center: [-10997148, 4569099], // continental US
+zoom: 4
+})
+});
+// Attribution and scale line
+map.addControl(new ol.control.Attribution());
+map.addControl(new ol.control.ScaleLine());
+// UI wiring
+document.querySelectorAll("input[name='basemap']").forEach((el)
+=> {
+el.addEventListener("change", (e) => {
+const val = e.target.value;
+osm.setVisible(val === "osm");
+esri.setVisible(val === "esri");
+});
+});
+document.getElementById("wmsToggle").addEventListener("change",
+(e) => {
+wms.setVisible(e.target.checked);
+});
+</script>
+</body>
+</html>
