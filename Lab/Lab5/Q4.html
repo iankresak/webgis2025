@@ -24,12 +24,14 @@
     import XYZ from 'https://cdn.jsdelivr.net/npm/ol@latest/source/XYZ.js';
     import OSM from 'https://cdn.jsdelivr.net/npm/ol@latest/source/OSM.js';
 
+    // OSM Basemap
     const osmLayer = new TileLayer({
       source: new OSM(),
       visible: true,
       title: 'OSM'
     });
 
+    // ESRI World Imagery Basemap
     const esriLayer = new TileLayer({
       source: new XYZ({
         url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -38,6 +40,7 @@
       title: 'ESRI Imagery'
     });
 
+    // WMS Layer (topp:states)
     const wmsLayer = new TileLayer({
       source: new TileWMS({
         url: 'https://ahocevar.com/geoserver/wms',
@@ -46,7 +49,7 @@
           'TILED': true,
           'VERSION': '1.1.1',
           'FORMAT': 'image/png',
-          'SRS': 'EPSG:4326'
+          'SRS': 'EPSG:3857'
         },
         serverType: 'geoserver',
         crossOrigin: 'anonymous'
@@ -55,13 +58,14 @@
       title: 'WMS Layer'
     });
 
+    // Map Initialization
     const map = new Map({
       target: 'map',
       layers: [osmLayer, esriLayer, wmsLayer],
       view: new View({
         center: [0, 0],
         zoom: 2,
-        projection: 'EPSG:4326'
+        projection: 'EPSG:3857'
       })
     });
   </script>
