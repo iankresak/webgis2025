@@ -1,1 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lab3 (Leaflet): Basemap Switcher + WMS</title>
+  <!-- Leaflet CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    .app {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "header header"
+        "sidebar map";
+      height: 100%;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: #0f172a;
+      background: #f8fafc;
+    }
+    header {
+      grid-area: header;
+      padding: 14px 18px;
+      background: #22c55e;
+      color: white;
+      box-shadow: 0 1px 6px rgba(0,0,0,.1);
+    }
+    header h1 { font-size: 18px; margin: 0 0 4px; }
+    header p { margin: 0; opacity: .9; font-size: 13px; }
 
+    .sidebar { grid-area: sidebar; padding: 16px; background: white; border-right: 1px solid #e2e8f0; }
+    .group { margin-bottom: 18px; }
+    .group h3 { margin: 0 0 10px; font-size: 14px; color: #334155; text-transform: uppercase; letter-spacing: .06em; }
+    .control { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 14px; }
+    .panel { padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
+    .hint { font-size: 12px; color: #475569; }
+    .badge { display:inline-block; padding:2px 6px; border-radius:999px; background:#e2e8f0; font-size:11px; color:#334155; }
+
+    #map { grid-area: map; height: 100%; width: 100%; }
+    .leaflet-bottom.leaflet-right .leaflet-control { margin-right: .6rem; margin-bottom: 1rem; }
+
+    .diag { font-size: 12px; line-height: 1.2; white-space: pre-wrap; background:#0f172a; color:#e2e8f0; border-radius: 8px; padding:8px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Lab3: Web-based Mapping Using <span class="badge">Leaflet</span></h1>
+      <p>Author: Ian Kresak · Basemap switcher + WMS overlay (<span class="badge">topp:states</span>)</p>
+    </header>
+
+    <aside class="sidebar">
+      <div class="group">
+        <h3>Basemap</h3>
+        <div class="panel">
+          <label class="control">
+            <input type="radio" name="basemap" value="osm" checked>
+            <span>OpenStreetMap (Standard)</span>
+          </label>
+          <label class="control">
+            <input type="radio" name="basemap" value="esri">
+            <span>Esri World Imagery</span>
+          </label>
+          <div class="hint">Use the radio buttons to select the active basemap.</div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Overlays</h3>
+        <div class="panel">
+          <label class="control">
+            <input type="checkbox" id="wmsToggle" checked>
+            <span>WMS: <code>topp:states</code> (GeoServer demo)</span>
+          </label>
+          <div class="hint">Toggle the GeoServer WMS overlay on/off.</div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Diagnostics</h3>
+        <div class="panel">
+          <button id="runTests">Run self‑tests</button>
+          <div id="diag" class="diag" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Attribution</h3>
+        <div class="panel">
+          © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · Esri, Maxar, Earthstar Geographics, and the GIS User Community · WMS courtesy of <a href="https://ahocevar.com/geoserver/" target="_blank" rel="noopener">GeoServer demo</a>
+        </div>
+      </div>
+    </aside>
+
+    <div id="map"></div>
+  </div>
+
+<script>
+  // --- Basemap layers ---
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  });
+
+  const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri'
+  });
+
+  // --- WMS overlay (GeoServer demo: topp:states) ---
+  const wmsStates = L.tileLayer.wms('https://ahocevar.com/geoserver/wms', {
+    layers: 'topp:states',
+    styles: '',
+    format: 'image/png',
+    transparent: true,
+    version: '1.1.1',
+    srs: 'EPSG:4326'
+  });
+
+  // --- Map ---
+  const map = L.map('map', {
+    center: [39.833, -98.583], // approx center of CONUS (lat, lon)
+    zoom: 5,
+    layers: [osm, wmsStates], // default basemap: OSM; overlay on
+    zoomControl: true
+  });
+
+  L.control.scale({ metric: false, imperial: true }).addTo(map);
+
+  // --- UI wiring: basemap radio buttons ---
+  const radios = document.querySelectorAll('input[name="basemap"]');
+  function setBase(value) {
+    if (value === 'esri') {
+      if (map.hasLayer(osm)) map.removeLayer(osm);
+      if (!map.hasLayer(esriImagery)) map.addLayer(esriImagery);
+    } else {
+      if (map.hasLayer(esriImagery)) map.removeLayer(esriImagery);
+      if (!map.hasLayer(osm)) map.addLayer(osm);
+    }
+  }
+  radios.forEach(r => r.addEventListener('change', (e) => setBase(e.target.value)));
+
+  // --- UI wiring: WMS checkbox ---
+  const wmsToggle = document.getElementById('wmsToggle');
+  wmsToggle.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      if (!map.hasLayer(wmsStates)) map.addLayer(wmsStates);
+    } else {
+      if (map.hasLayer(wmsStates)) map.removeLayer(wmsStates);
+    }
+  });
+
+  // --- Self-tests ---
+  function runSelfTests() {
+    const logs = [];
+    try {
+      logs.push('[Test] Leaflet global present: ' + (!!window.L));
+      logs.push('[Test] Map created: ' + (map instanceof L.Map));
+      logs.push('[Test] Default basemap is OSM: ' + map.hasLayer(osm));
+
+      // Basemap switcher
+      setBase('esri');
+      logs.push('[Test] Switch→ Esri present: ' + map.hasLayer(esriImagery));
+      logs.push('[Test] Switch→ OSM removed: ' + !map.hasLayer(osm));
+      setBase('osm');
+      logs.push('[Test] Switch back→ OSM present: ' + map.hasLayer(osm));
+      logs.push('[Test] Switch back→ Esri removed: ' + !map.hasLayer(esriImagery));
+
+      // WMS toggle
+      if (map.hasLayer(wmsStates)) map.removeLayer(wmsStates);
+      logs.push('[Test] WMS removed: ' + !map.hasLayer(wmsStates));
+      map.addLayer(wmsStates);
+      logs.push('[Test] WMS added: ' + map.hasLayer(wmsStates));
+
+      // Tile URL sanity checks
+      const osmUrlOK = /openstreetmap\.org\/.+\{z\}/.test(osm._url);
+      const esriUrlOK = /ArcGIS\/rest\/services\/World_Imagery/.test(esriImagery._url);
+      logs.push('[Test] OSM URL pattern OK: ' + osmUrlOK);
+      logs.push('[Test] Esri URL pattern OK: ' + esriUrlOK);
+
+      return logs.join('\n');
+    } catch (err) {
+      return 'Self-tests failed with error: ' + err.message;
+    }
+  }
+
+  document.getElementById('runTests').addEventListener('click', () => {
+    const out = runSelfTests();
+    const el = document.getElementById('diag');
+    el.textContent = out;
+    console.log(out);
+  });
+</script>
+</body>
+</html>
