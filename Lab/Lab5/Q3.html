@@ -1,1 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenLayers Basemap Switcher & WMS</title>
+    
+    <!-- OpenLayers CSS (Using v6.15.1 for stability) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v6.15.1/ol.css">
 
+    <style>
+        /* CSS adapted for the lab requirements */
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            overflow: hidden; /* Prevent body scroll due to grid */
+        }
+        .app {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            grid-template-rows: auto 1fr;
+            grid-template-areas:
+                "header header"
+                "sidebar map";
+            height: 100%;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            color: #0f172a;
+            background: #f8fafc;
+        }
+        header { 
+            grid-area: header; 
+            padding: 14px 18px; 
+            background: #22c55e; 
+            color: white; 
+            box-shadow: 0 1px 6px rgba(0,0,0,.1); 
+        }
+        header h1 { font-size: 18px; margin: 0 0 4px; }
+        header p { margin: 0; opacity: .9; font-size: 13px; }
+
+        .sidebar { 
+            grid-area: sidebar; 
+            padding: 16px; 
+            background: white; 
+            border-right: 1px solid #e2e8f0; 
+            overflow-y: auto; 
+        }
+        .group { margin-bottom: 18px; }
+        .group h3 { margin: 0 0 10px; font-size: 14px; color: #334155; text-transform: uppercase; letter-spacing: .06em; }
+        .control { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 14px; }
+        .panel { padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
+        .hint { font-size: 12px; color: #475569; }
+        .badge { display:inline-block; padding:2px 6px; border-radius:999px; background:#e2e8f0; font-size:11px; color:#334155; }
+
+        #map { 
+            grid-area: map; 
+            height: 100%; 
+            width: 100%; 
+        }
+
+        .diag { font-size: 12px; line-height: 1.2; white-space: pre-wrap; background:#0f172a; color:#e2e8f0; border-radius: 8px; padding:8px; }
+    </style>
+
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>Web GIS Client: Basemap Switcher + WMS <span class="badge">OpenLayers</span></h1>
+            <p>OSM, Esri Imagery, and GeoServer topp:states WMS layer.</p>
+        </header>
+
+        <aside class="sidebar">
+            <div class="group">
+                <h3>Basemap Selection</h3>
+                <div class="panel">
+                    <label class="control">
+                        <input type="radio" name="basemap" value="osm" checked>
+                        <span>OpenStreetMap (Standard)</span>
+                    </label>
+                    <label class="control">
+                        <input type="radio" name="basemap" value="esri">
+                        <span>Esri World Imagery</span>
+                    </label>
+                    <div class="hint">Select the active background map.</div>
+                </div>
+            </div>
+
+            <div class="group">
+                <h3>Overlays</h3>
+                <div class="panel">
+                    <label class="control">
+                        <input type="checkbox" id="wmsToggle" checked>
+                        <span>WMS: <code>topp:states</code> (GeoServer demo)</span>
+                    </label>
+                    <div class="hint">Toggle the US States WMS layer.</div>
+                </div>
+            </div>
+
+            <div class="group">
+                <h3>Diagnostics</h3>
+                <div class="panel">
+                    <button id="runTests">Run self‑tests</button>
+                    <div id="diag" class="diag" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <div class="group">
+                <h3>Attribution</h3>
+                <div class="panel">
+                    © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · Esri, Maxar, Earthstar Geographics, and the GIS User Community · WMS courtesy of <a href="https://ahocevar.com/geoserver/" target="_blank" rel="noopener">GeoServer demo</a>
+                </div>
+            </div>
+        </aside>
+
+        <div id="map"></div>
+    </div>
+
+    <!-- OpenLayers JS (Using v6.15.1 for stability) - MUST load before the application script -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@v6.15.1/dist/ol.js"></script>
+
+<script>
+    // Since the OL script is directly above, we don't need window.onload. 
+    // The browser will execute this script after the OL script is finished.
+
+    // Destructure OpenLayers objects from the global 'ol' namespace
+    const { Map, View } = ol;
+    const { Tile, Image } = ol.layer;
+    const { OSM, XYZ, ImageWMS } = ol.source;
+    const { fromLonLat } = ol.proj;
+
+    // --- 1. Define Layers ---
+
+    // 1.1. OSM Basemap (Default)
+    const osmBasemap = new Tile({
+        title: 'osm',
+        type: 'base',
+        visible: true,
+        source: new OSM(),
+    });
+
+    // 1.2. ESRI Imagery Basemap
+    const esriImageryBasemap = new Tile({
+        title: 'esri',
+        type: 'base',
+        visible: false,
+        source: new XYZ({
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attributions: 'Tiles © Esri',
+        }),
+    });
+    
+    // 1.3. WMS Overlay: topp:states (GeoServer demo)
+    const wmsStatesLayer = new Image({
+        title: 'wmsStates',
+        type: 'overlay',
+        visible: true, // Default checked in HTML
+        source: new ImageWMS({
+            url: 'https://ahocevar.com/geoserver/wms',
+            params: {
+                'LAYERS': 'topp:states',
+                'FORMAT': 'image/png',
+                'TRANSPARENT': true,
+                'VERSION': '1.1.1', // Explicitly setting version as requested by the URL example
+            },
+            serverType: 'geoserver',
+        }),
+        opacity: 0.6 // Use opacity for better basemap visibility
+    });
+
+
+    // --- 2. Initialize Map ---
+
+    // Continental US center: [39.833, -98.583] in Lon/Lat (to be converted to EPSG:3857)
+    const usCenter = fromLonLat([-98.583, 39.833]); 
+    
+    const map = new Map({
+        target: 'map',
+        layers: [
+            osmBasemap,          
+            esriImageryBasemap,  
+            wmsStatesLayer,
+        ],
+        view: new View({
+            center: usCenter,
+            zoom: 5, // Appropriate zoom level for continental US
+            minZoom: 2,
+            maxZoom: 18,
+            projection: 'EPSG:3857'
+        })
+    });
+
+    // --- 3. Interaction Logic ---
+
+    // 3.1. Basemap Switcher (Radio Buttons)
+    const radios = document.querySelectorAll('input[name="basemap"]');
+    
+    function setBase(selectedTitle) {
+        map.getLayers().forEach(layer => {
+            if (layer.get('type') === 'base') {
+                const layerTitle = layer.get('title');
+                // Set the selected base layer to visible, others to hidden
+                layer.setVisible(layerTitle === selectedTitle);
+            }
+        });
+    }
+
+    radios.forEach(r => r.addEventListener('change', (e) => setBase(e.target.value)));
+
+    // Ensure the initial state is correct (OSM visible, ESRI hidden)
+    setBase('osm'); 
+
+    // 3.2. WMS Layer Toggle (Checkbox)
+    const wmsToggle = document.getElementById('wmsToggle');
+    
+    // Initial state sync
+    wmsStatesLayer.setVisible(wmsToggle.checked); 
+
+    wmsToggle.addEventListener('change', (e) => {
+        wmsStatesLayer.setVisible(e.target.checked);
+    });
+
+
+    // --- 4. Self-tests ---
+    function runSelfTests() {
+        const logs = [];
+        const isMapVisible = map.getTargetElement().clientHeight > 0;
+        
+        try {
+            logs.push('[Test] OpenLayers global present: ' + (!!window.ol));
+            logs.push('[Test] Map created and rendered: ' + (map instanceof ol.Map && isMapVisible));
+
+            // Basemap switcher tests
+            setBase('esri');
+            logs.push('[Test] Switch→ Esri visible: ' + esriImageryBasemap.getVisible());
+            logs.push('[Test] Switch→ OSM hidden: ' + !osmBasemap.getVisible());
+            
+            setBase('osm');
+            logs.push('[Test] Switch back→ OSM visible: ' + osmBasemap.getVisible());
+            logs.push('[Test] Switch back→ Esri hidden: ' + !esriImageryBasemap.getVisible());
+
+            // Overlay toggle test
+            wmsStatesLayer.setVisible(false);
+            logs.push('[Test] WMS States hidden: ' + !wmsStatesLayer.getVisible());
+            wmsStatesLayer.setVisible(true);
+            logs.push('[Test] WMS States visible: ' + wmsStatesLayer.getVisible());
+            
+            return logs.join('\n');
+        } catch (err) {
+            return 'Self-tests failed with error: ' + err.message;
+        }
+    }
+
+    document.getElementById('runTests').addEventListener('click', () => {
+        const out = runSelfTests();
+        const el = document.getElementById('diag');
+        el.textContent = out;
+        console.log(out);
+    });
+</script>
+</body>
+</html>
