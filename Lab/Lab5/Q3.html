@@ -1,260 +1,296 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OpenLayers Basemap Switcher & WMS</title>
-    
-    <!-- OpenLayers CSS (Using v6.15.1 for stability) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v6.15.1/ol.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenLayers Multi-Layer Map</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* CSS adapted for the lab requirements */
-        html, body { 
-            height: 100%; 
-            margin: 0; 
-            overflow: hidden; /* Prevent body scroll due to grid */
-        }
-        .app {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            grid-template-rows: auto 1fr;
-            grid-template-areas:
-                "header header"
-                "sidebar map";
+        /* OpenLayers CSS */
+        @import url("https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css");
+        
+        /* Custom Styles to make the map fill the screen */
+        html, body {
             height: 100%;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-            color: #0f172a;
-            background: #f8fafc;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
+            font-family: 'Inter', sans-serif;
         }
-        header { 
-            grid-area: header; 
-            padding: 14px 18px; 
-            background: #22c55e; 
-            color: white; 
-            box-shadow: 0 1px 6px rgba(0,0,0,.1); 
+        #map {
+            width: 100%;
+            height: 100%;
+            transition: all 0.3s ease;
         }
-        header h1 { font-size: 18px; margin: 0 0 4px; }
-        header p { margin: 0; opacity: .9; font-size: 13px; }
+        .ol-popup {
+            position: absolute;
+            background-color: white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #cccccc;
+            bottom: 12px;
+            left: -50px;
+            min-width: 200px;
+        }
+        .ol-popup:after, .ol-popup:before {
+            top: 100%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+        .ol-popup:after {
+            border-top-color: white;
+            border-width: 10px;
+            left: 48px;
+            margin-left: -10px;
+        }
+        .ol-popup:before {
+            border-top-color: #cccccc;
+            border-width: 11px;
+            left: 48px;
+            margin-left: -11px;
+        }
+        .ol-popup-closer {
+            text-decoration: none;
+            position: absolute;
+            top: 2px;
+            right: 8px;
+            font-size: 1.2rem;
+            color: #374151; /* Dark Gray */
+        }
+        .ol-popup-closer:after {
+            content: "✖";
+        }
 
-        .sidebar { 
-            grid-area: sidebar; 
-            padding: 16px; 
-            background: white; 
-            border-right: 1px solid #e2e8f0; 
-            overflow-y: auto; 
-        }
-        .group { margin-bottom: 18px; }
-        .group h3 { margin: 0 0 10px; font-size: 14px; color: #334155; text-transform: uppercase; letter-spacing: .06em; }
-        .control { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 14px; }
-        .panel { padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
-        .hint { font-size: 12px; color: #475569; }
-        .badge { display:inline-block; padding:2px 6px; border-radius:999px; background:#e2e8f0; font-size:11px; color:#334155; }
-
-        #map { 
-            grid-area: map; 
-            height: 100%; 
-            width: 100%; 
-        }
-
-        .diag { font-size: 12px; line-height: 1.2; white-space: pre-wrap; background:#0f172a; color:#e2e8f0; border-radius: 8px; padding:8px; }
     </style>
-
 </head>
-<body>
-    <div class="app">
-        <header>
-            <h1>Web GIS Client: Basemap Switcher + WMS <span class="badge">OpenLayers</span></h1>
-            <p>OSM, Esri Imagery, and GeoServer topp:states WMS layer.</p>
-        </header>
+<body class="bg-gray-100 flex flex-col h-screen">
 
-        <aside class="sidebar">
-            <div class="group">
-                <h3>Basemap Selection</h3>
-                <div class="panel">
-                    <label class="control">
-                        <input type="radio" name="basemap" value="osm" checked>
-                        <span>OpenStreetMap (Standard)</span>
-                    </label>
-                    <label class="control">
-                        <input type="radio" name="basemap" value="esri">
-                        <span>Esri World Imagery</span>
-                    </label>
-                    <div class="hint">Select the active background map.</div>
-                </div>
+    <!-- Header and Controls -->
+    <div class="p-4 bg-white shadow-lg z-10">
+        <h1 class="text-xl font-bold text-gray-800">OpenLayers Map Viewer</h1>
+        <div class="mt-2 flex flex-wrap gap-4 items-center">
+            
+            <!-- Basemap Selector -->
+            <div class="flex items-center space-x-2">
+                <label for="basemap-select" class="text-sm font-medium text-gray-700">Basemap:</label>
+                <select id="basemap-select" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+                    <option value="osm">OpenStreetMap</option>
+                    <option value="esri">ESRI World Imagery</option>
+                </select>
             </div>
 
-            <div class="group">
-                <h3>Overlays</h3>
-                <div class="panel">
-                    <label class="control">
-                        <input type="checkbox" id="wmsToggle" checked>
-                        <span>WMS: <code>topp:states</code> (GeoServer demo)</span>
-                    </label>
-                    <div class="hint">Toggle the US States WMS layer.</div>
-                </div>
+            <!-- WMS Layer Toggle -->
+            <div class="flex items-center space-x-2">
+                <input type="checkbox" id="wms-toggle" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                <label for="wms-toggle" class="text-sm font-medium text-gray-700">WMS: Topp States</label>
             </div>
-
-            <div class="group">
-                <h3>Diagnostics</h3>
-                <div class="panel">
-                    <button id="runTests">Run self‑tests</button>
-                    <div id="diag" class="diag" aria-live="polite"></div>
-                </div>
-            </div>
-
-            <div class="group">
-                <h3>Attribution</h3>
-                <div class="panel">
-                    © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · Esri, Maxar, Earthstar Geographics, and the GIS User Community · WMS courtesy of <a href="https://ahocevar.com/geoserver/" target="_blank" rel="noopener">GeoServer demo</a>
-                </div>
-            </div>
-        </aside>
-
-        <div id="map"></div>
+        </div>
     </div>
 
-    <!-- OpenLayers JS (Using v6.15.1 for stability) - MUST load before the application script -->
-    <script src="https://cdn.jsdelivr.net/npm/ol@v6.15.1/dist/ol.js"></script>
+    <!-- Map Container -->
+    <div id="map" class="flex-grow"></div>
 
-<script>
-    // Since the OL script is directly above, we don't need window.onload. 
-    // The browser will execute this script after the OL script is finished.
+    <!-- OpenLayers Popup Container -->
+    <div id="popup" class="ol-popup">
+        <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+        <div id="popup-content"></div>
+    </div>
 
-    // Destructure OpenLayers objects from the global 'ol' namespace
-    const { Map, View } = ol;
-    const { Tile, Image } = ol.layer;
-    const { OSM, XYZ, ImageWMS } = ol.source;
-    const { fromLonLat } = ol.proj;
+    <!-- OpenLayers Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
 
-    // --- 1. Define Layers ---
+    <script>
+        // Use a self-invoking function to manage scope and ensure execution after DOM load
+        window.onload = function() {
+            // --- 1. SETUP FIREBASE GLOBALS (Not strictly needed for OpenLayers, but good practice for Canvas environment) ---
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+            // No Firebase initialization is needed since this is purely a mapping application.
 
-    // 1.1. OSM Basemap (Default)
-    const osmBasemap = new Tile({
-        title: 'osm',
-        type: 'base',
-        visible: true,
-        source: new OSM(),
-    });
-
-    // 1.2. ESRI Imagery Basemap
-    const esriImageryBasemap = new Tile({
-        title: 'esri',
-        type: 'base',
-        visible: false,
-        source: new XYZ({
-            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            attributions: 'Tiles © Esri',
-        }),
-    });
-    
-    // 1.3. WMS Overlay: topp:states (GeoServer demo)
-    const wmsStatesLayer = new Image({
-        title: 'wmsStates',
-        type: 'overlay',
-        visible: true, // Default checked in HTML
-        source: new ImageWMS({
-            url: 'https://ahocevar.com/geoserver/wms',
-            params: {
-                'LAYERS': 'topp:states',
-                'FORMAT': 'image/png',
-                'TRANSPARENT': true,
-                'VERSION': '1.1.1', // Explicitly setting version as requested by the URL example
-            },
-            serverType: 'geoserver',
-        }),
-        opacity: 0.6 // Use opacity for better basemap visibility
-    });
-
-
-    // --- 2. Initialize Map ---
-
-    // Continental US center: [39.833, -98.583] in Lon/Lat (to be converted to EPSG:3857)
-    const usCenter = fromLonLat([-98.583, 39.833]); 
-    
-    const map = new Map({
-        target: 'map',
-        layers: [
-            osmBasemap,          
-            esriImageryBasemap,  
-            wmsStatesLayer,
-        ],
-        view: new View({
-            center: usCenter,
-            zoom: 5, // Appropriate zoom level for continental US
-            minZoom: 2,
-            maxZoom: 18,
-            projection: 'EPSG:3857'
-        })
-    });
-
-    // --- 3. Interaction Logic ---
-
-    // 3.1. Basemap Switcher (Radio Buttons)
-    const radios = document.querySelectorAll('input[name="basemap"]');
-    
-    function setBase(selectedTitle) {
-        map.getLayers().forEach(layer => {
-            if (layer.get('type') === 'base') {
-                const layerTitle = layer.get('title');
-                // Set the selected base layer to visible, others to hidden
-                layer.setVisible(layerTitle === selectedTitle);
-            }
-        });
-    }
-
-    radios.forEach(r => r.addEventListener('change', (e) => setBase(e.target.value)));
-
-    // Ensure the initial state is correct (OSM visible, ESRI hidden)
-    setBase('osm'); 
-
-    // 3.2. WMS Layer Toggle (Checkbox)
-    const wmsToggle = document.getElementById('wmsToggle');
-    
-    // Initial state sync
-    wmsStatesLayer.setVisible(wmsToggle.checked); 
-
-    wmsToggle.addEventListener('change', (e) => {
-        wmsStatesLayer.setVisible(e.target.checked);
-    });
-
-
-    // --- 4. Self-tests ---
-    function runSelfTests() {
-        const logs = [];
-        const isMapVisible = map.getTargetElement().clientHeight > 0;
-        
-        try {
-            logs.push('[Test] OpenLayers global present: ' + (!!window.ol));
-            logs.push('[Test] Map created and rendered: ' + (map instanceof ol.Map && isMapVisible));
-
-            // Basemap switcher tests
-            setBase('esri');
-            logs.push('[Test] Switch→ Esri visible: ' + esriImageryBasemap.getVisible());
-            logs.push('[Test] Switch→ OSM hidden: ' + !osmBasemap.getVisible());
+            // --- 2. OPENLAYERS IMPORTS AND INITIALIZATION ---
             
-            setBase('osm');
-            logs.push('[Test] Switch back→ OSM visible: ' + osmBasemap.getVisible());
-            logs.push('[Test] Switch back→ Esri hidden: ' + !esriImageryBasemap.getVisible());
+            // Destructure necessary modules from the global ol object
+            const { Map, View } = ol;
+            const { Tile, WebGLTile } = ol.layer;
+            const { OSM, XYZ, TileWMS } = ol.source;
+            const { fromLonLat, toLonLat } = ol.proj;
+            const { Overlay } = ol;
 
-            // Overlay toggle test
-            wmsStatesLayer.setVisible(false);
-            logs.push('[Test] WMS States hidden: ' + !wmsStatesLayer.getVisible());
-            wmsStatesLayer.setVisible(true);
-            logs.push('[Test] WMS States visible: ' + wmsStatesLayer.getVisible());
+            // Define the center of the initial map view (e.g., USA center)
+            const initialCenter = fromLonLat([-98.5795, 39.8283]); // Geographic coordinates for roughly the center of the US
+
+            // --- 3. LAYER DEFINITIONS ---
+
+            // OpenStreetMap Basemap Layer
+            const osmLayer = new Tile({
+                title: 'OpenStreetMap',
+                type: 'base',
+                visible: true,
+                source: new OSM(),
+            });
+
+            // ESRI World Imagery Basemap Layer (using XYZ source)
+            const esriImageryLayer = new Tile({
+                title: 'ESRI World Imagery',
+                type: 'base',
+                visible: false, // Start hidden
+                source: new XYZ({
+                    attributions:
+                        'Tiles &copy; <a href="https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer">ESRI</a>',
+                    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                    maxZoom: 19,
+                }),
+            });
+
+            // WMS Overlay Layer: topp:states
+            // Note: The WMS URL parameters are slightly cleaner when defined in the source object
+            const wmsLayer = new Tile({
+                title: 'WMS Topp States',
+                visible: true, // Start visible
+                opacity: 0.5, // Make it semi-transparent
+                source: new TileWMS({
+                    url: 'https://ahocevar.com/geoserver/wms',
+                    params: {
+                        'LAYERS': 'topp:states',
+                        'TILED': true,
+                        // Note: The SRS is typically derived from the map's projection (EPSG:3857)
+                        // but setting it explicitly can be done if needed, though for standard
+                        // WMS services, leaving it out lets OL handle the reprojection request.
+                    },
+                    serverType: 'geoserver',
+                    // This service is in EPSG:4326, but OL handles the projection change to 3857 for display.
+                }),
+            });
             
-            return logs.join('\n');
-        } catch (err) {
-            return 'Self-tests failed with error: ' + err.message;
-        }
-    }
+            // --- 4. MAP INITIALIZATION ---
 
-    document.getElementById('runTests').addEventListener('click', () => {
-        const out = runSelfTests();
-        const el = document.getElementById('diag');
-        el.textContent = out;
-        console.log(out);
-    });
-</script>
+            const map = new Map({
+                target: 'map',
+                layers: [
+                    osmLayer,          // Basemap 1 (Default visible)
+                    esriImageryLayer,  // Basemap 2
+                    wmsLayer           // Overlay Layer
+                ],
+                view: new View({
+                    center: initialCenter,
+                    zoom: 4, // Zoomed out view of the US
+                    minZoom: 2,
+                    maxZoom: 20
+                }),
+            });
+
+            // --- 5. INTERACTIVITY: POPUP FOR WMS ATTRIBUTES ---
+            
+            // Get the popup elements
+            const container = document.getElementById('popup');
+            const content = document.getElementById('popup-content');
+            const closer = document.getElementById('popup-closer');
+
+            // Create the Overlay object for the popup
+            const popup = new Overlay({
+                element: container,
+                autoPan: {
+                    animation: {
+                        duration: 250,
+                    },
+                },
+            });
+            map.addOverlay(popup);
+
+            // Close the popup when the close button is clicked
+            closer.onclick = function () {
+                popup.setPosition(undefined);
+                closer.blur();
+                return false;
+            };
+
+            // Add map click handler to query WMS features (GetFeatureInfo)
+            map.on('singleclick', function (evt) {
+                if (wmsLayer.getVisible() === false) {
+                    // Only query WMS if the layer is visible
+                    return;
+                }
+
+                const viewResolution = map.getView().getResolution();
+                const url = wmsLayer.getSource().getFeatureInfoUrl(
+                    evt.coordinate,
+                    viewResolution,
+                    'EPSG:3857', // Map's projection
+                    {'INFO_FORMAT': 'application/json'} // Request JSON format
+                );
+
+                if (url) {
+                    fetch(url)
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (data.features.length > 0) {
+                                // Extract properties from the first feature
+                                const properties = data.features[0].properties;
+                                
+                                // Format the content
+                                let html = `<h4 class="font-bold text-lg mb-1">${properties.STATE_NAME || 'Feature Info'}</h4>`;
+                                html += `<ul class="text-sm space-y-0.5">`;
+                                
+                                // List the key properties (customize this list based on what you want to show)
+                                const keysToShow = ['STATE_FIPS', 'SUB_REGION', 'AREA_SQKM'];
+                                keysToShow.forEach(key => {
+                                    if (properties.hasOwnProperty(key)) {
+                                        let value = properties[key];
+                                        if (key === 'AREA_SQKM') {
+                                            value = parseFloat(value).toFixed(2) + ' sq. km';
+                                        }
+                                        html += `<li><span class="font-semibold">${key.replace('_', ' ')}:</span> ${value}</li>`;
+                                    }
+                                });
+
+                                html += `</ul>`;
+
+                                content.innerHTML = html;
+                                popup.setPosition(evt.coordinate);
+                            } else {
+                                content.innerHTML = '<p class="text-gray-500">No feature found at this location.</p>';
+                                popup.setPosition(evt.coordinate);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching WMS feature info:', error);
+                            content.innerHTML = '<p class="text-red-500">Error querying WMS data.</p>';
+                            popup.setPosition(evt.coordinate);
+                        });
+                }
+            });
+
+            // --- 6. CONTROL EVENT LISTENERS ---
+
+            // Basemap Switcher Logic
+            document.getElementById('basemap-select').addEventListener('change', (event) => {
+                const selectedBasemap = event.target.value;
+                if (selectedBasemap === 'osm') {
+                    osmLayer.setVisible(true);
+                    esriImageryLayer.setVisible(false);
+                } else if (selectedBasemap === 'esri') {
+                    osmLayer.setVisible(false);
+                    esriImageryLayer.setVisible(true);
+                }
+            });
+
+            // WMS Layer Toggle Logic
+            document.getElementById('wms-toggle').addEventListener('change', (event) => {
+                wmsLayer.setVisible(event.target.checked);
+                // Hide the popup if the WMS layer is turned off
+                if (!event.target.checked) {
+                    popup.setPosition(undefined);
+                }
+            });
+
+            // Log successful initialization
+            console.log("OpenLayers map successfully initialized.");
+        };
+    </script>
 </body>
 </html>
