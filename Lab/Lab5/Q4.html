@@ -2,47 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>OpenLayers Map with OSM, ESRI, and WMS</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css">
+  <title>OpenLayers Map with OSM, ESRI, and WMS (No-Module Fix)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
   <style>
-    html, body, #map {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-    }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    #map { width: 100%; height: 85%; }
+    #controls { height: 15%; padding: 10px; background: #f0f0f0; font-family: system-ui, sans-serif; display:flex; gap:12px; align-items:center; }
+    #diag { margin-left:auto; font-size:12px; white-space:pre-wrap; background:#0f172a; color:#e2e8f0; padding:8px 10px; border-radius:8px; max-height: 60px; overflow:auto; }
+    button { padding:6px 10px; border-radius:8px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; }
   </style>
 </head>
 <body>
+  <div id="controls">
+    <label for="basemap">Choose basemap:</label>
+    <select id="basemap" aria-label="Basemap selector">
+      <option value="osm">OpenStreetMap</option>
+      <option value="esri">ESRI Imagery</option>
+    </select>
+    <label><input type="checkbox" id="wmsToggle" checked> Show WMS (topp:states)</label>
+    <button id="runTests" title="Run quick self‑tests">Run self-tests</button>
+    <div id="diag" aria-live="polite"></div>
+  </div>
   <div id="map"></div>
-  <script type="module">
-    import 'https://cdn.jsdelivr.net/npm/ol@latest/ol.css';
-    import Map from 'https://cdn.jsdelivr.net/npm/ol@latest/Map.js';
-    import View from 'https://cdn.jsdelivr.net/npm/ol@latest/View.js';
-    import TileLayer from 'https://cdn.jsdelivr.net/npm/ol@latest/layer/Tile.js';
-    import TileWMS from 'https://cdn.jsdelivr.net/npm/ol@latest/source/TileWMS.js';
-    import XYZ from 'https://cdn.jsdelivr.net/npm/ol@latest/source/XYZ.js';
-    import OSM from 'https://cdn.jsdelivr.net/npm/ol@latest/source/OSM.js';
 
-    // OSM Basemap
-    const osmLayer = new TileLayer({
-      source: new OSM(),
-      visible: true,
-      title: 'OSM'
+  <!-- IMPORTANT: Use the bundled (non-module) build to avoid missing ESM deps like `rbush` -->
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
+  <script>
+    // --- Layers ---
+    const osmLayer = new ol.layer.Tile({
+      source: new ol.source.OSM(),
+      visible: true
     });
 
-    // ESRI World Imagery Basemap
-    const esriLayer = new TileLayer({
-      source: new XYZ({
+    const esriLayer = new ol.layer.Tile({
+      source: new ol.source.XYZ({
         url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
       }),
-      visible: false,
-      title: 'ESRI Imagery'
+      visible: false
     });
 
-    // WMS Layer (topp:states)
-    const wmsLayer = new TileLayer({
-      source: new TileWMS({
+    const wmsLayer = new ol.layer.Tile({
+      source: new ol.source.TileWMS({
         url: 'https://ahocevar.com/geoserver/wms',
         params: {
           'LAYERS': 'topp:states',
@@ -54,20 +54,61 @@
         serverType: 'geoserver',
         crossOrigin: 'anonymous'
       }),
-      visible: true,
-      title: 'WMS Layer'
+      visible: true
     });
 
-    // Map Initialization
-    const map = new Map({
+    // --- Map ---
+    const map = new ol.Map({
       target: 'map',
       layers: [osmLayer, esriLayer, wmsLayer],
-      view: new View({
-        center: [0, 0],
+      view: new ol.View({
+        center: [0, 0], // keep your original center
         zoom: 2,
         projection: 'EPSG:3857'
       })
     });
+
+    // --- UI wiring ---
+    document.getElementById('basemap').addEventListener('change', function () {
+      const selected = this.value;
+      osmLayer.setVisible(selected === 'osm');
+      esriLayer.setVisible(selected === 'esri');
+    });
+
+    document.getElementById('wmsToggle').addEventListener('change', function () {
+      wmsLayer.setVisible(this.checked);
+    });
+
+    // --- Self-tests (lightweight) ---
+    function runSelfTests() {
+      const logs = [];
+      try {
+        logs.push('[Test] ol global present: ' + (!!window.ol));
+        logs.push('[Test] Map is ol.Map: ' + (map instanceof ol.Map));
+        logs.push('[Test] Layers count = 3: ' + (map.getLayers().getLength() === 3));
+        // Basemap switch
+        osmLayer.setVisible(false); esriLayer.setVisible(true);
+        logs.push('[Test] Switch→ ESRI visible & OSM hidden: ' + (esriLayer.getVisible() && !osmLayer.getVisible()));
+        esriLayer.setVisible(false); osmLayer.setVisible(true);
+        logs.push('[Test] Switch back→ OSM visible & ESRI hidden: ' + (osmLayer.getVisible() && !esriLayer.getVisible()));
+        // WMS toggle
+        wmsLayer.setVisible(false); logs.push('[Test] WMS hidden: ' + (!wmsLayer.getVisible()));
+        wmsLayer.setVisible(true);  logs.push('[Test] WMS shown: ' + (wmsLayer.getVisible()));
+        return logs.join('\n');
+      } catch (e) {
+        return 'Self-tests failed: ' + e.message;
+      }
+    }
+
+    document.getElementById('runTests').addEventListener('click', () => {
+      const out = runSelfTests();
+      const diag = document.getElementById('diag');
+      diag.textContent = out;
+      console.log(out);
+    });
+
+    // Graceful logging for tile errors (useful if demo servers throttle)
+    wmsLayer.getSource().on('tileloaderror', () => console.warn('WMS tile failed to load (server may be busy).'));
   </script>
 </body>
 </html>
