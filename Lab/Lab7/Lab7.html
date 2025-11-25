@@ -1,56 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>SEF Boundary WMS Map</title>
+  <meta charset="UTF-8">
+  <title>SEF Boundary – WMS (EPSG:26917)</title>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@6.15.1/ol.css">
+  <!-- OpenLayers CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@6.15.1/ol.css">
 
-<style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-  }
-  #map {
-    width: 100%;
-    height: 100%;
-  }
-</style>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    .map-title {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 4px;
+      z-index: 1000;
+      font-size: 13px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
 
 <div id="map"></div>
+<div class="map-title">ikresak:sef_boundary (WMS)</div>
 
+<!-- OpenLayers JS -->
 <script src="https://cdn.jsdelivr.net/npm/ol@6.15.1/dist/ol.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
-
-<script>
-
-  // Register EPSG:26917 for OpenLayers
-  proj4.defs(
-    "EPSG:26917",
-    "+proj=utm +zone=17 +datum=NAD83 +units=m +no_defs"
-  );
-  ol.proj.proj4.register(proj4);
-
-  const projection26917 = ol.proj.get("EPSG:26917");
-
-  // Your extent (from WMS URL)
-  const sefExtent = [
-    608656.131727871,
-    3665900.518650468,
-    616064.9332359073,
-    3672903.723104099
-  ];
-
-  // BASEMAP (always Web Mercator EPSG:3857)
-  const osmLayer = new ol.layer.Tile({
-    source: new ol.source.OSM()
-  });
-
-  // YOUR WMS LAYER
-  const sefLayer = new ol.layer.Image({
-    source: new ol.source.ImageWMS({
-      url: "http://18.
