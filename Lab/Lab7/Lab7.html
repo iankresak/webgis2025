@@ -2,11 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Lidar Stream WMS – ikresak</title>
+  <title>SEF Boundary – ikresak WMS</title>
 
   <!-- OpenLayers CSS -->
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/ol@6.15.1/ol.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@6.15.1/ol.css">
 
   <style>
     html, body {
@@ -31,46 +30,47 @@
       border-radius: 4px;
       z-index: 1000;
       font-size: 14px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
-<div class="map-title">
-  Lidar Stream WMS – ikresak
-</div>
+<div class="map-title">SEF Boundary – ikresak WMS</div>
 
-<!-- OpenLayers JS (global `ol` object) -->
+<!-- OpenLayers JS -->
 <script src="https://cdn.jsdelivr.net/npm/ol@6.15.1/dist/ol.js"></script>
 <!-- proj4 for custom projection -->
 <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
 
 <script>
-  // Register EPSG:26917 (NAD83 / UTM zone 17N) with OpenLayers
-  // Projection string for EPSG:26917
+  // Register EPSG:26917 (NAD83 / UTM zone 17N)
   proj4.defs(
     "EPSG:26917",
     "+proj=utm +zone=17 +datum=NAD83 +units=m +no_defs"
   );
-
-  // Hook proj4 into OpenLayers
   ol.proj.proj4.register(proj4);
 
   const projection = ol.proj.get("EPSG:26917");
 
-  // Extent from your original WMS request
-  const lidarExtent = [608300.5, 3665300.42, 616299.5, 3673299.42];
+  // Extent from the WMS request (YOUR exact bbox)
+  const sefExtent = [
+    608656.131727871,
+    3665900.518650468,
+    616064.9332359073,
+    3672903.723104099
+  ];
 
-  // WMS layer from your GeoServer
-  const lidarLayer = new ol.layer.Image({
+  // WMS Layer
+  const sefLayer = new ol.layer.Image({
     source: new ol.source.ImageWMS({
       url: "http://18.118.247.53:8080/geoserver/ikresak/wms",
       params: {
         "SERVICE": "WMS",
         "VERSION": "1.1.0",
         "REQUEST": "GetMap",
-        "LAYERS": "ikresak:lidar_stream",
+        "LAYERS": "ikresak:sef_boundary",
         "STYLES": "",
         "FORMAT": "image/png",
         "SRS": "EPSG:26917"
@@ -80,17 +80,17 @@
     })
   });
 
-  // Create the map
+  // Create map
   const map = new ol.Map({
     target: "map",
-    layers: [lidarLayer],
+    layers: [sefLayer],
     view: new ol.View({
       projection: projection
     })
   });
 
-  // Fit the view to the WMS extent
-  map.getView().fit(lidarExtent, {
+  // Fit map view to bbox
+  map.getView().fit(sefExtent, {
     size: map.getSize(),
     padding: [20, 20, 20, 20]
   });
