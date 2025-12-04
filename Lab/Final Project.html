@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Kresak Web GIS Final Project</title>
+  <script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #0d1117;
+      color: white;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+
+    #layerList {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(20,20,20,.9);
+      padding: 12px;
+      border-radius: 8px;
+      z-index: 999;
+      max-height: 80vh;
+      overflow-y: auto;
+      font-size: 13px;
+    }
+
+    #layerList input {
+      margin-right: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="layerList"><b>Layers</b><br></div>
+<div id="map"></div>
+
+<script>
+
+const map = new ol.Map({
+  target: 'map',
+  layers: [
+    new ol.layer.Tile({
+      source: new ol.source.OSM()
+    })
+  ],
+  view: new ol.View({
+    center: ol.proj.fromLonLat([-80, 35]),   // NC default
+    zoom: 7
+  })
+});
+
+
+// ===== Replace this with YOUR WMS endpoint =====
+const SERVER_URL = "http://YOUR_SERVER:8080/geoserver/wms";
+
+// ===== ADD YOUR PUBLISHED LAYERS HERE =====
+const layers = [
+  "workspace:layer1",
+  "workspace:layer2",
+  "workspace:layer3",
+  "workspace:layer4"
+];
+
+let layerPanel = document.getElementById("layerList");
+
+layers.forEach((layerName, i) => {
+
+  let wms = new ol.layer.Image({
+    source: new ol.source.ImageWMS({
+      url: SERVER_URL,
+      params: {
+        'LAYERS': layerName,
+        'TILED': true
+      },
+      ratio: 1,
+      serverType: 'geoserver'
+    }),
+    visible: true
+  });
+
+  map.addLayer(wms);
+
+  // Create checkbox UI
+  let checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = true;
+
+  checkbox.onchange = () => {
+    wms.setVisible(checkbox.checked);
+  };
+
+  let label = document.createElement("label");
+  label.appendChild(checkbox);
+  label.appendChild(document.createTextNode(" " + layerName));
+
+  layerPanel.appendChild(label);
+  layerPanel.appendChild(document.createElement("br"));
+});
+
+</script>
+
+</body>
+</html>
