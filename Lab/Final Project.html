@@ -1,109 +1,164 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Kresak Web GIS Final Project</title>
+  <meta charset="UTF-8" />
+  <title>Kresak Web GIS Final – Polygons + NLCD Clips</title>
+
   <script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/npm/ol@latest/ol.css" />
+
   <style>
-    body {
+    html, body {
       margin: 0;
-      font-family: Arial;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: Arial, sans-serif;
       background: #0d1117;
-      color: white;
+      color: #e6edf3;
     }
 
     #map {
       width: 100%;
-      height: 100vh;
+      height: 100%;
     }
 
-    #layerList {
+    #layerPanel {
       position: absolute;
       top: 10px;
       left: 10px;
-      background: rgba(20,20,20,.9);
-      padding: 12px;
-      border-radius: 8px;
-      z-index: 999;
+      z-index: 1000;
+      background: rgba(13, 17, 23, 0.95);
+      border-radius: 10px;
+      padding: 10px 12px;
       max-height: 80vh;
       overflow-y: auto;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
       font-size: 13px;
     }
 
-    #layerList input {
-      margin-right: 6px;
+    #layerPanel h3 {
+      margin: 4px 0 6px 0;
+      font-size: 14px;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 3px;
+    }
+
+    .group-title {
+      margin-top: 6px;
+      font-weight: bold;
+      color: #79c0ff;
+    }
+
+    .layer-item {
+      margin: 2px 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .subtle {
+      font-size: 11px;
+      color: #8b949e;
     }
   </style>
 </head>
 
 <body>
 
-<div id="layerList"><b>Layers</b><br></div>
+<div id="layerPanel">
+  <h3>Layers</h3>
+  <div class="subtle">Toggle polygon and NLCD layers</div>
+
+  <div id="polygonLayersContainer"></div>
+  <div id="nlcdLayersContainer"></div>
+</div>
+
 <div id="map"></div>
 
 <script>
-
-const map = new ol.Map({
-  target: 'map',
-  layers: [
-    new ol.layer.Tile({
-      source: new ol.source.OSM()
+  const map = new ol.Map({
+    target: 'map',
+    layers: [
+      new ol.layer.Tile({ source: new ol.source.OSM() })
+    ],
+    view: new ol.View({
+      center: ol.proj.fromLonLat([-79.5, 35.5]),
+      zoom: 7
     })
-  ],
-  view: new ol.View({
-    center: ol.proj.fromLonLat([-80, 35]),   // NC default
-    zoom: 7
-  })
-});
-
-
-// ===== Replace this with YOUR WMS endpoint =====
-const SERVER_URL = "http://YOUR_SERVER:8080/geoserver/wms";
-
-// ===== ADD YOUR PUBLISHED LAYERS HERE =====
-const layers = [
-  "workspace:layer1",
-  "workspace:layer2",
-  "workspace:layer3",
-  "workspace:layer4"
-];
-
-let layerPanel = document.getElementById("layerList");
-
-layers.forEach((layerName, i) => {
-
-  let wms = new ol.layer.Image({
-    source: new ol.source.ImageWMS({
-      url: SERVER_URL,
-      params: {
-        'LAYERS': layerName,
-        'TILED': true
-      },
-      ratio: 1,
-      serverType: 'geoserver'
-    }),
-    visible: true
   });
 
-  map.addLayer(wms);
+  const GEOSERVER_WMS_URL = "http://18.118.247.53:8080/geoserver/ikresak/wms";
 
-  // Create checkbox UI
-  let checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.checked = true;
+  const polygonLayerConfigs = [
+    { label: "Study Area Boundary", name: "ikresak:sef_boundary" },
+    { label: "Analysis Grid", name: "ikresak:analysis_grid" },
+    { label: "NC State Polygon", name: "ikresak:nc_polygon" }
+  ];
 
-  checkbox.onchange = () => {
-    wms.setVisible(checkbox.checked);
-  };
+  const nlcdLayerConfigs = [
+    { label: "NLCD Clip – USA", name: "ikresak:nlcd_us_clip" },
+    { label: "NLCD Clip – NC", name: "ikresak:nlcd_nc_clip" },
+    { label: "NLCD Clip – 2019", name: "ikresak:nlcd_nc_2019" }
+  ];
 
-  let label = document.createElement("label");
-  label.appendChild(checkbox);
-  label.appendChild(document.createTextNode(" " + layerName));
+  function createWmsLayer(layerName) {
+    return new ol.layer.Image({
+      source: new ol.source.ImageWMS({
+        url: GEOSERVER_WMS_URL,
+        params: { LAYERS: layerName, TILED: true },
+        ratio: 1,
+        serverType: 'geoserver'
+      }),
+      visible: true
+    });
+  }
 
-  layerPanel.appendChild(label);
-  layerPanel.appendChild(document.createElement("br"));
-});
+  const polygonContainer = document.getElementById("polygonLayersContainer");
+  const polygonTitle = document.createElement("div");
+  polygonTitle.className = "group-title";
+  polygonTitle.textContent = "Polygon Layers";
+  polygonContainer.appendChild(polygonTitle);
 
+  polygonLayerConfigs.forEach(cfg => {
+    const layer = createWmsLayer(cfg.name);
+    map.addLayer(layer);
+
+    const item = document.createElement("div");
+    item.className = "layer-item";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = true;
+    checkbox.onchange = () => layer.setVisible(checkbox.checked);
+
+    item.appendChild(checkbox);
+    item.appendChild(document.createTextNode(cfg.label));
+    polygonContainer.appendChild(item);
+  });
+
+  const nlcdContainer = document.getElementById("nlcdLayersContainer");
+  const nlcdTitle = document.createElement("div");
+  nlcdTitle.className = "group-title";
+  nlcdTitle.textContent = "NLCD Layers";
+  nlcdContainer.appendChild(nlcdTitle);
+
+  nlcdLayerConfigs.forEach(cfg => {
+    const layer = createWmsLayer(cfg.name);
+    map.addLayer(layer);
+
+    const item = document.createElement("div");
+    item.className = "layer-item";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = true;
+    checkbox.onchange = () => layer.setVisible(checkbox.checked);
+
+    item.appendChild(checkbox);
+    item.appendChild(document.createTextNode(cfg.label));
+    nlcdContainer.appendChild(item);
+  });
 </script>
 
 </body>
